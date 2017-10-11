@@ -1,5 +1,6 @@
 ---
 title: "Assignment error minimum reproducible example"
+geometry: margin=0.5cm
 output:
   pdf_document: default
   html_document: default
