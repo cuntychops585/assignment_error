@@ -1,0 +1,107 @@
+---
+title: "Assignment error minimum reproducible example"
+output: html_document
+---
+
+---
+
+## Loading libraries and raw data
+
+```{r loading libraries, warning = FALSE, message = FALSE}
+library(rpart)
+library(caret)
+```
+
+```{r loading data, cache = TRUE}
+pml_training_smaller <- read.csv("pml_training_smaller.csv")
+pml_testing_smaller  <- read.csv("pml_testing_smaller.csv")
+```
+
+```{r examine raw data}
+dim(pml_training_smaller); dim(pml_testing_smaller)
+names_training <- names(pml_training_smaller)
+names_testing <- names(pml_testing_smaller)
+print(names_training)
+names_training[!(names_training %in% names_testing)]; names_testing[!(names_testing %in% names_training)]
+```
+<br>
+So these two input files contain data with the same number of columns and there is nothing that appears in the list of testing column names that does not appear in the list of training column names, and vice-versa.
+
+<br>
+The outcome to be predicted is the variable 'classe' (i.e. the final column). This is a factor with 5 levels, A, B, C, D, and E. All other columns used to predict this outcome are numeric or integer class.
+
+---
+
+## Predicting using partitioned subsets of raw training data as my testing and training data
+
+For this part, original testing data loaded from the file "pml_testing_smaller.csv" is irrelevant, because a new testing set is created by partitioning the original training data set:
+```{r partition training set into training subset and testing subset}
+set.seed(1)
+partition <- createDataPartition(pml_training_smaller$classe, p=0.7, list=FALSE)
+training_subset <- pml_training_smaller[partition, ]
+testing_subset <- pml_training_smaller[-partition, ]
+dim(training_subset); dim(testing_subset)
+```
+
+<br>
+Now fit and predict:
+```{r fit subsetted data, error = TRUE}
+modfit_pml_testing_rpart_1  <- rpart(classe ~ ., data = training_subset, method = "class")
+predict_pml_testing_rpart_1 <- predict(modfit_pml_testing_rpart_1, testing_subset, type = "class")
+confmat_pml_testing_rpart_1 <- confusionMatrix(predict_pml_testing_rpart_1, testing_subset$classe)
+confmat_pml_testing_rpart_1
+```
+
+<br>
+So what I have here is a sensible result based on a training and testing set that have identical format because they are subsets of the same wider set (which is the original training data, 'pml_training_smaller'). So far so good.
+<br>
+
+---
+
+## Predicting using the whole original training data as my training set, and the original testing data as my testing data set
+
+Originally the testing data found in the file "pml_testing_smaller.csv" did not have the 'classe' column that the training data found in the file "pml_training_smaller.csv" has. Instead its name was 'problem_id', and in each cell, it simply contained an integer (i.e. the number of the row in question).
+
+I modified this column in "pml_testing_smaller.csv" myself before creating this document, so that it has the same column name as in "pml_training_smaller.csv" (i.e. 'classe'), and that it contains fake/made-up factor values, A, B, C, D, or E. Thus, it has the same name, type and levels as the corresponding column in "pml_training_smaller.csv", and I therefore have the same situation as what I had in the previous section with the partitioned data. 
+
+So, unsurprisingly, I can generate a confusion matrix in the same manner as I did in the previous section:
+```{r fit raw data, error = TRUE}
+modfit_pml_testing_rpart_2  <- rpart(classe ~ ., data = pml_training_smaller, method = "class")
+predict_pml_testing_rpart_2 <- predict(modfit_pml_testing_rpart_2, pml_testing_smaller, type = "class")
+confmat_pml_testing_rpart_2 <- confusionMatrix(predict_pml_testing_rpart_2, pml_testing_smaller$classe)
+confmat_pml_testing_rpart_2
+```
+
+<br>
+It works as expected (despite the accuracy being low; this is because I faked the values in the 'classe' column of the testing set used in this instance, whereas in the previous section, the corresponding column had real values).
+
+---
+
+### The actual problem I'm having
+
+<br>
+However, my problem is that rather than faking the values, I am supposed to be predicting what these 'classe' values should really be, given all the other columns in "pml_testing_smaller.csv" (the 'classe' values it currently has are fake ones I added to see what happens).
+
+I will now put that column back to the way it is supposed to be:
+```{r return pml_testing_smaller$classe to its original form} 
+pml_testing_smaller$classe <- c(1:20)
+colnames(pml_testing_smaller)[ncol(pml_testing_smaller)] <- "problem_id"
+#str(pml_testing_smaller)
+```
+
+<br>
+Now I try generating a confusion matrix in the same manner as I did in the previous section:
+```{r fit raw data again with original problem_id column, error = TRUE}
+modfit_pml_testing_rpart_3  <- rpart(classe ~ ., data = pml_training_smaller, method = "class")
+predict_pml_testing_rpart_3 <- predict(modfit_pml_testing_rpart_3, pml_testing_smaller, type = "class")
+confmat_pml_testing_rpart_3 <- confusionMatrix(predict_pml_testing_rpart_3, pml_testing_smaller$classe)
+confmat_pml_testing_rpart_3
+```
+
+<br>
+Thus, I'm told that "the data cannot have more levels than the reference". I get the same error message if I remove the column entirely.
+
+<br>
+How am I supposed to predict the outcome 'classe' for each row of my testing data stored in 'pml_testing_smaller'?
+
+---
