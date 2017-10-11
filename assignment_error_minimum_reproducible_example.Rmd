@@ -6,8 +6,6 @@ output:
   html_document: default
 ---
 
----
-
 ## Loading libraries and raw data
 
 ```{r loading libraries, warning = FALSE, message = FALSE}
