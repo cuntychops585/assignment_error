@@ -1,6 +1,8 @@
 ---
 title: "Assignment error minimum reproducible example"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ---
@@ -17,8 +19,13 @@ pml_training_smaller <- read.csv("pml_training_smaller.csv")
 pml_testing_smaller  <- read.csv("pml_testing_smaller.csv")
 ```
 
-```{r examine raw data}
+```{r examine raw data dimensions}
 dim(pml_training_smaller); dim(pml_testing_smaller)
+```
+<br>
+--> The testing and training files have identical number of column (53). Now the column names are examined:
+
+```{r examine raw data column names}
 names_training <- names(pml_training_smaller)
 names_testing <- names(pml_testing_smaller)
 print(names_training)
@@ -44,7 +51,8 @@ dim(training_subset); dim(testing_subset)
 ```
 
 <br>
-Now fit and predict:
+<br>
+Now make the model, the prediction and the confusion matrix:
 ```{r fit subsetted data, error = TRUE}
 modfit_pml_testing_rpart_1  <- rpart(classe ~ ., data = training_subset, method = "class")
 predict_pml_testing_rpart_1 <- predict(modfit_pml_testing_rpart_1, testing_subset, type = "class")
